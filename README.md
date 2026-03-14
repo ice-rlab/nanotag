@@ -4,7 +4,7 @@ NanoTag is the first low-overhead technique to detect byte-granular buffer overf
 
 ![](./figs/nanotag.png)
 
-Please cite the following [paper](https://arxiv.org/abs/2509.22027) if you use NanoTag's open-source artifact:
+Please cite the following [paper](https://arxiv.org/abs/2509.22027) if you use NanoTag's open-source artifacts:
 
 ```
 @inproceedings{li-nanotag-oakland-2026,
