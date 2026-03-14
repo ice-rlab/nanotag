@@ -1,10 +1,10 @@
-# NANOTAG: Systems Support for Efficient Byte-Granular Overflow Detection on ARM MTE
+# NanoTag: Systems Support for Efficient Byte-Granular Overflow Detection on ARM MTE
 
-NANOTAG is a system to efficiently detect memory safety bugs probabilistically in unmodified MTE-enabled binaries at byte granularity, addressing intra-granule buffer overflows in real hardware to help in-house testing (e.g., fuzzing) detect such bugs with an explicit detection-performance tradeoff.
+NanoTag is the first low-overhead technique to detect byte-granular buffer overflows in real hardware. Buffer overflows are the root cause of most software vulnerabilities. ARM's Memory Tagging Extension (MTE) aims to prevent such buffer overflows in hardware by ensuring that a pointer's tag matches the tag of any 16-byte memory the pointer accesses, sanitizing memory accesses. Unfortunately, such a 16-byte tag granularity prevents MTE from sanitizing many memory accesses, exposing a large surface (87% for SPEC CPU 2017) of bypassing MTE checks. To addresses this limitation, NanoTag enables byte-granular overflow detection via software checks, controlled by a sampling knob to explicitly balance bug-detection capability and performance overhead.
 
 ![](./figs/nanotag.png)
 
-Please cite the following [paper](https://arxiv.org/abs/2509.22027) if you use NANOTAG's open-source artifact:
+Please cite the following [paper](https://arxiv.org/abs/2509.22027) if you use NanoTag's open-source artifact:
 
 ```
 @inproceedings{li-nanotag-oakland-2026,
@@ -36,7 +36,7 @@ sudo apt update
 sudo apt install -y build-essential cmake git python3 python3-pip clang
 ```
 
-## Building NANOTAG
+## Building NanoTag
 
 ### Build Baseline MTE-Enabled Scudo
 
@@ -54,7 +54,7 @@ cd -
 
 ### Build Tag Mismatch Handler
 
-NANOTAG relies on a custom signal handler to detect tag mismatch faults. To build the handler, run the following command:
+NanoTag relies on a custom signal handler to detect tag mismatch faults. To build the handler, run the following command:
 
 ```sh
 mkdir -p ~/mte-sanitizer-runtime
@@ -65,9 +65,9 @@ clang -shared -fPIC -march=armv8.5-a+memtag -DINTERCEPT_SIGNAL_HANDLER -DFOPEN_I
 cd -
 ```
 
-### Build NANOTAG's Custom Memory Allocator
+### Build NanoTag's Custom Memory Allocator
 
-NANOTAG uses a custom memory allocator (based on Scudo) to manage the metadata for byte-granular overflow detection. To build the allocator, run the following command:
+NanoTag uses a custom memory allocator (based on Scudo) to manage the metadata for byte-granular overflow detection. To build the allocator, run the following command:
 
 ```sh
 mkdir -p ~/mte-sanitizer-runtime
@@ -91,17 +91,17 @@ LD_PRELOAD=~/baseline-runtime/libscudo.so <your_program>
 
 If a crash occurs due to a memory safety bug, you will see a "Segmentation fault" error message on the terminal.
 
-## Quick Start with NANOTAG
+## Quick Start with NanoTag
 
-### Run with NANOTAG
+### Run with NanoTag
 
-To run your binary with NANOTAG, you can use the following command:
+To run your binary with NanoTag, you can use the following command:
 
 ```sh
 LD_PRELOAD=~/mte-sanitizer-runtime/handler.so:~/mte-sanitizer-runtime/libscudo.so <your_program>
 ```
 
-This command will load both the custom signal handler and the custom memory allocator, enabling NANOTAG's byte-granular overflow detection capabilities. If a memory safety bug is detected, you can see a bug report like this:
+This command will load both the custom signal handler and the custom memory allocator, enabling NanoTag's byte-granular overflow detection capabilities. If a memory safety bug is detected, you can see a bug report like this:
 
 ```
 Tag Mismatch Fault (SYNC). PC: 0x61572507fc, Instruction: 0x39405101, Fault Address: 0x505725fd24, Memory Tag: 0x0
@@ -118,7 +118,7 @@ Short Granule. Permitted Bytes: 5, Short Granule Start Byte: 10
 
 ### Test with Sample Programs
 
-We provide two sample programs in the `samples` directory to demonstrate NANOTAG's capabilities in detecting intra-granule buffer overflows. You can build and run these sample programs with both NANOTAG and the baseline MTE-enabled Scudo to see the difference in detection capabilities.
+We provide two sample programs in the `samples` directory to demonstrate NanoTag's capabilities in detecting intra-granule buffer overflows. You can build and run these sample programs with both NanoTag and the baseline MTE-enabled Scudo to see the difference in detection capabilities.
 
 ```sh
 cd samples
@@ -126,7 +126,7 @@ cd samples
 clang test_oob_cross_granule.c -o test_oob_cross_granule
 clang test_oob_short_granule.c -o test_oob_short_granule
 
-# Run the sample programs with NANOTAG
+# Run the sample programs with NanoTag
 LD_PRELOAD=~/mte-sanitizer-runtime/handler.so:~/mte-sanitizer-runtime/libscudo.so ./test_oob_cross_granule # Detected
 LD_PRELOAD=~/mte-sanitizer-runtime/handler.so:~/mte-sanitizer-runtime/libscudo.so ./test_oob_short_granule # Detected
 
@@ -137,7 +137,7 @@ LD_PRELOAD=~/baseline-runtime/libscudo.so ./test_oob_short_granule # Not Detecte
 
 ### Configure Detection-Performance Tradeoff
 
-NANOTAG supports 3 configurable parameters to allow users to explicitly control the detection-performance tradeoff:
+NanoTag supports 3 configurable parameters to allow users to explicitly control the detection-performance tradeoff:
 
 - `AllocThreshold`: The maximum number of allocations that will be allocated in the slow start phase.
 - `SamplingRate`: The rate at which the allocation is sampled for byte-granular tagging after the slow start phase.
@@ -151,7 +151,7 @@ export SCUDO_SAMPLING_RATE=<value> # SamplingRate
 export MTE_SANITIZER_THRESHOLD=<value> # AccessThreshold
 ```
 
-At the beginning of the program execution, NANOTAG will print the configured parameters in the log. The default output looks like this:
+At the beginning of the program execution, NanoTag will print the configured parameters in the log. The default output looks like this:
 
 ```
 SCUDO_SAMPLING_RATE not set, using default value: 1000
