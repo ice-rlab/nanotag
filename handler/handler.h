@@ -1,0 +1,94 @@
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <ucontext.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <dlfcn.h>
+#include <execinfo.h>
+
+/* DEBUG FLAGS*/
+// #define DEBUG_PRINT
+// #define ENABLE_WARNINGS
+// #define SHORT_GRANULE_PRINT_ONLY
+// #define DISABLE_ACCESS_THRESHOLD
+// #define ENABLE_DETAILED_REPORT
+// #define ENABLE_STACK_PROT_MTE
+// #define DEBUG_TRACING
+
+/* BENCHMARK-REQUIRED FLAGS */
+// #define INTERCEPT_SIGNAL_HANDLER
+// #define FOPEN_INTERCEPT
+
+#define BUFFER_SIZE 1024
+
+#if defined(__BIONIC__)
+#define RUN_ON_ANDROID 1
+#else
+#define RUN_ON_ANDROID 0
+#endif
+
+#ifndef SEGV_MTEAERR
+#define SEGV_MTEAERR 8
+#endif
+
+#ifndef SEGV_MTESERR
+#define SEGV_MTESERR 9
+#endif
+
+// #define ESR_MAGIC	0x45535201
+// #define FPSIMD_MAGIC 0x46508001
+
+#define MASK_LOAD_LITERAL   0x3b000000
+#define MATCH_LOAD_LITERAL  0x18000000
+
+#define MASK_LOAD_STORE     0x0a000000
+#define MATCH_LOAD_STORE    0x08000000
+
+#define MASK_HANDLED_LOAD_STORE             0x3a000000
+#define MATCH_HANDLED_LOAD_STORE_PAIR       0x28000000
+#define MATCH_HANDLED_LOAD_STORE_NORMAL     0x38000000
+
+#define MASK_ATOMIC_LOAD_STORE 0x3b200c00
+#define MATCH_ATOMIC_LOAD_STORE 0x38200000
+
+#define MASK_REGISTER_OFFSET_LOAD_STORE     0x3b200c00
+#define MATCH_REGISTER_OFFSET_LOAD_STORE    0x38200800
+
+#define MASK_BRANCH_EXCEPTION_SYS       0x1c000000
+#define MATCH_BRANCH_EXCEPTION_SYS      0x14000000
+
+#define MASK_UNCONDITIONAL_BRANCH_REG       0xfe000000
+#define MATCH_UNCONDITIONAL_BRANCH_REG      0xd6000000
+
+#define MASK_UNCONDITIONAL_BRANCH_IMMEDIATE     0x7c000000
+#define MATCH_UNCONDITIONAL_BRANCH_IMMEDIATE    0x14000000
+
+#define MASK_CONDITIONAL_BRANCH         0xff000000
+#define MATCH_CONDITIONAL_BRANCH        0x54000000
+
+#define MASK_COMPARE_OR_TEST_AND_BRANCH     0x7c000000
+#define MATCH_COMPARE_OR_TEST_AND_BRANCH    0x34000000
+
+#define MASK_COMPARE_REG_AND_BRANCH         0x7c000000
+#define MATCH_COMPARE_REG_AND_BRANCH        0x74000000
+
+#define RET_INSTRUCTION 0xd65f03c0
+
+#define BRK_INSTRUCTION 0xd43bd5a0
+
+#ifndef BRANCH_LOOKAHEAD_NUM
+#define BRANCH_LOOKAHEAD_NUM 2
+
+#define MAX_CACHED_PAGE_NUM 1024
+
+#define DEFAULT_THRESHOLD 64
+#define MAX_THRESHOLD 256
+
+#define MAX_FRAMES 64
+#endif
